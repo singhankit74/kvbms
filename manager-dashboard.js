@@ -117,13 +117,13 @@ async function loadBuses() {
         const { data, error } = await supabase
             .from('buses')
             .select('*')
-            .eq('created_by', currentUser.id)
-            .eq('branch_id', userBranch.branch_id)
+            .eq('branch_id', userBranch.branch_id)  // Only filter by branch, not by creator
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         buses = data || [];
+        console.log('Buses loaded:', buses.length);
         renderBuses();
         populateBusSelects();
     } catch (error) {
@@ -193,13 +193,13 @@ async function loadTodayReadings() {
                 bus:buses(bus_number, driver_name, route_name)
             `)
             .eq('date', today)
-            .eq('recorded_by', currentUser.id)
             .eq('branch_id', userBranch.branch_id)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         todayReadings = data || [];
+        console.log('Today readings loaded:', todayReadings.length);
         renderTodayReadings();
     } catch (error) {
         console.error('Error loading today readings:', error);
@@ -266,7 +266,6 @@ async function loadFuelEntries() {
                 *,
                 bus:buses(bus_number, driver_name, route_name)
             `)
-            .eq('recorded_by', currentUser.id)
             .eq('branch_id', userBranch.branch_id)
             .order('date', { ascending: false })
             .order('created_at', { ascending: false })
@@ -275,6 +274,7 @@ async function loadFuelEntries() {
         if (error) throw error;
 
         fuelEntries = data || [];
+        console.log('Fuel entries loaded:', fuelEntries.length);
         renderFuelEntries();
     } catch (error) {
         console.error('Error loading fuel entries:', error);

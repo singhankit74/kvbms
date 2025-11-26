@@ -414,29 +414,35 @@ async function handleSaveManager(e) {
                 updated_at: new Date().toISOString()
             };
 
-            if (password) {
-                updateData.password_hash = password;
-            }
-
-            const { error } = await supabase
+            // Update basic info
+            const { error: updateError } = await supabase
                 .from('users')
                 .update(updateData)
                 .eq('id', managerId);
 
-            if (error) throw error;
+            if (updateError) throw updateError;
+
+            // Update password separately using database function if provided
+            if (password) {
+                const { error: pwError } = await supabase
+                    .rpc('update_manager_password', {
+                        p_user_id: managerId,
+                        p_password: password
+                    });
+
+                if (pwError) throw pwError;
+            }
 
             Utils.showSuccess('managerSuccess', 'Manager updated successfully!');
         } else {
-            // Create new manager
-            const { error } = await supabase
-                .from('users')
-                .insert({
-                    email: email,
-                    password_hash: password,
-                    full_name: name,
-                    role: 'vehicle_manager',
-                    branch_id: branchId,
-                    created_by: currentUser.id
+            // Create new manager using database function for password hashing
+            const { data, error } = await supabase
+                .rpc('create_vehicle_manager', {
+                    p_email: email,
+                    p_password: password,
+                    p_full_name: name,
+                    p_branch_id: branchId,
+                    p_created_by: currentUser.id
                 });
 
             if (error) throw error;
