@@ -1,174 +1,214 @@
-# School Bus Meter Reading App
+# 🚌 School Bus Meter Reading System
 
-A mobile-friendly web application for tracking daily school bus meter readings with photo documentation.
+A Progressive Web App (PWA) for tracking school bus meter readings, fuel entries, and managing fleet operations across multiple branches.
 
-## 🚀 Features
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/singhankit74/kvbms)
 
-### Admin Dashboard
-- ✅ Create, edit, and delete Vehicle Manager accounts
-- ✅ View all buses and meter readings
-- ✅ Export daily/weekly/monthly reports to Excel
-- ✅ Real-time statistics dashboard
+## ✨ Features
 
-### Vehicle Manager Dashboard
-- ✅ Add, edit, and delete buses (Bus Number, Driver Name, Route Name)
-- ✅ Record daily departure readings with meter photos
-- ✅ Record return readings with meter photos
-- ✅ Auto-calculated distance traveled
-- ✅ View today's readings and pending returns
+- 📊 **Daily Meter Readings** - Track departure and return readings with photo verification
+- ⛽ **Fuel Entry Management** - Log fuel consumption, costs, and odometer readings
+- 🏢 **Multi-Branch Support** - Manage 7 different branches independently
+- 👥 **Role-Based Access** - Admin and Vehicle Manager roles with different permissions
+- 📱 **Progressive Web App** - Install on any device (Android, iOS, Windows, Mac)
+- 📥 **Excel Export** - Download detailed reports for meter readings and fuel entries
+- 🔒 **Secure Authentication** - Bcrypt password hashing with database-level verification
+- 📸 **Photo Upload & Compression** - Automatic image compression to ~200KB
+- 🌐 **Offline Support** - Service Worker caching for offline access
 
-### Image Processing
-- ✅ Client-side image compression to <200KB
-- ✅ Automatic resizing to ~1024px width
-- ✅ Real-time preview and size display
-- ✅ Maintains image clarity for auditing
+## 🏗️ Tech Stack
 
-## 📋 Setup Instructions
+- **Frontend**: Vanilla HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Supabase (PostgreSQL + Storage + Auth)
+- **PWA**: Service Workers, Web App Manifest
+- **Authentication**: Custom auth with PostgreSQL bcrypt
+- **Export**: SheetJS (xlsx) for Excel generation
+- **Hosting**: Vercel (recommended) or Netlify
 
-### 1. Database Setup
+## 🚀 Live Demo
 
-1. Go to your Supabase Dashboard: https://thavlshywlvyewvckwzl.supabase.co
-2. Navigate to **SQL Editor**
-3. Open `database/schema.sql`
-4. Copy and paste the entire SQL script
-5. Run the script to create tables, storage bucket, and policies
+🔗 **[Live App](https://kvbms.vercel.app)** _(Update after deployment)_
 
-### 2. Verify Setup
+## 📦 Installation & Setup
 
-Check that the following were created:
-- Tables: `users`, `buses`, `meter_readings`
-- Storage bucket: `meter-photos` (set to public)
-- Default admin user created
+### Prerequisites
+- Supabase account (free tier works)
+- Git installed
+- A local web server (Python, Node.js, or Live Server)
 
-### 3. Run the Application
+### 1. Clone the Repository
 
-Simply open `index.html` in a web browser or use a local server:
+```bash
+git clone https://github.com/singhankit74/kvbms.git
+cd kvbms
+```
+
+### 2. Set Up Supabase
+
+1. Create a new project at [Supabase](https://supabase.com)
+2. Go to SQL Editor
+3. Run the migration script: `database/migration_v2_final.sql`
+4. Run the password verification function: `database/password_verification.sql`
+5. Get your Supabase URL and Anon Key from Settings → API
+
+### 3. Configure the App
+
+Update `app.js` with your Supabase credentials:
+
+```javascript
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+```
+
+### 4. Create Admin Account
+
+Run this SQL in Supabase SQL Editor:
+
+```sql
+INSERT INTO users (email, password_hash, full_name, role, branch_id)
+VALUES (
+    'admin@schoolbus.com',
+    crypt('admin123', gen_salt('bf')),
+    'System Admin',
+    'admin',
+    NULL
+);
+```
+
+### 5. Serve Locally
 
 ```bash
 # Using Python
 python -m http.server 8000
 
-# Using Node.js
-npx http-server
+# OR using Node.js
+npx http-server -p 8000
 
-# Using PHP
-php -S localhost:8000
+# OR using Live Server in VS Code
+# Right-click index.html → Open with Live Server
 ```
 
-Then navigate to `http://localhost:8000`
+Open `http://localhost:8000`
 
-## 🔐 Default Credentials
+## 🔑 Default Credentials
 
-**Admin Account:**
-- Email: `admin@schoolbus.com`
-- Password: `admin123`
+- **Admin**: admin@schoolbus.com / admin123
 
-⚠️ **Important:** Change the admin password after first login in production!
+## 🏢 Branches
 
-## 📱 Usage Workflow
+The system supports 7 branches:
+- RAIPUR
+- BHILAI
+- ANGUL
+- BRAHAMPUR
+- JAGDALPUR KIDS
+- JAGDALPUR MAIN
+- RAJGANGPUR
 
-### For Admin:
-1. Login with admin credentials
-2. Create Vehicle Manager accounts
-3. View all buses and meter readings
-4. Export reports to Excel (daily/weekly/monthly)
+## 📱 PWA Installation
 
-### For Vehicle Manager:
-1. Login with credentials provided by admin
-2. Add buses with bus number, driver name, and route name
-3. Each day:
-   - Select a bus and record **departure** reading + photo
-   - When bus returns, record **return** reading + photo
-   - Distance is automatically calculated
+The app can be installed on:
+- **Android** - Via Chrome (Add to Home Screen)
+- **iOS** - Via Safari (Add to Home Screen)
+- **Windows/Mac/Linux** - Via Chrome/Edge (Install button in address bar)
 
-## 📊 Excel Report Fields
+## 🌐 Deployment
 
-The exported Excel file includes:
-- Date
-- Bus Number
-- Driver Name
-- Route Name
-- Departure Reading
-- Departure Photo URL
-- Departure Time
-- Return Reading
-- Return Photo URL
-- Return Time
-- Distance Traveled
+### Deploy to Vercel (Recommended)
 
-## 🛠️ Technology Stack
+1. Fork this repository
+2. Go to [Vercel](https://vercel.com)
+3. Click "New Project"
+4. Import your forked repository
+5. Click "Deploy"
+6. Update Supabase CORS settings with your Vercel URL
 
-- **Frontend:** HTML5, CSS3, JavaScript (Vanilla)
-- **Backend:** Supabase (PostgreSQL + Storage)
-- **Libraries:**
-  - Supabase JS Client
-  - SheetJS (Excel export)
-  - Custom image compression utility
+### Deploy to Netlify
 
-## 📁 Project Structure
+1. Fork this repository
+2. Go to [Netlify](https://netlify.com)
+3. Click "Add new site" → "Import an existing project"
+4. Connect to GitHub and select your repository
+5. Click "Deploy"
+
+## 📸 Screenshots
+
+_Add screenshots here after deployment_
+
+## 🛠️ Development
+
+### Project Structure
 
 ```
-school buses system/
+kvbms/
 ├── index.html              # Login page
-├── admin-dashboard.html    # Admin dashboard
-├── manager-dashboard.html  # Vehicle manager dashboard
+├── admin-dashboard.html    # Admin interface
+├── manager-dashboard.html  # Vehicle manager interface
 ├── styles.css             # Global styles
-├── app.js                 # Core app logic
+├── app.js                 # Supabase configuration
 ├── auth.js                # Authentication logic
 ├── utils.js               # Utility functions
 ├── admin-dashboard.js     # Admin dashboard logic
 ├── manager-dashboard.js   # Manager dashboard logic
-└── database/
-    ├── schema.sql         # Database schema
-    └── README.md          # Database setup guide
+├── service-worker.js      # PWA service worker
+├── manifest.json          # PWA manifest
+├── vercel.json           # Vercel configuration
+├── icons/                # App icons
+│   ├── icon-192x192.png
+│   └── icon-512x512.png
+└── database/             # SQL migration scripts
+    ├── migration_v2_final.sql
+    └── password_verification.sql
 ```
 
-## 🎨 Design Features
+### Making Changes
 
-- Modern, premium UI with gradients and animations
-- Fully responsive (mobile-first design)
-- Dark mode compatible color scheme
-- Smooth transitions and micro-animations
-- Touch-friendly interface for mobile devices
+```bash
+# Create a new branch
+git checkout -b feature/your-feature
 
-## 🔒 Security Features
+# Make changes and commit
+git add .
+git commit -m "Add your feature"
 
-- Row Level Security (RLS) policies on all tables
-- Role-based access control (Admin vs Vehicle Manager)
-- Session management with localStorage
-- Secure image storage with Supabase Storage
+# Push to GitHub
+git push origin feature/your-feature
 
-## 📝 Notes
+# Create a Pull Request on GitHub
+```
 
-- Images are automatically compressed to meet the 200KB requirement
-- Distance traveled is auto-calculated by database trigger
-- Each bus can only have one reading per day
-- Return reading must be greater than or equal to departure reading
+## 🔒 Security
 
-## 🐛 Troubleshooting
+- ✅ Bcrypt password hashing
+- ✅ Row Level Security (RLS) in Supabase
+- ✅ HTTPS only (enforced in production)
+- ✅ CORS protection
+- ✅ XSS protection headers
+- ✅ Content Security Policy
 
-**Issue:** Can't login
-- Verify database schema is properly set up
-- Check browser console for errors
-- Ensure Supabase credentials are correct
+## 📄 License
 
-**Issue:** Image upload fails
-- Check if storage bucket `meter-photos` exists and is public
-- Verify image is a valid format (JPEG, PNG, WebP)
-- Ensure image is under 10MB before compression
+MIT License - feel free to use this project for your own purposes.
 
-**Issue:** Excel export not working
-- Ensure SheetJS library is loaded
-- Check browser console for errors
-- Verify readings exist for the selected date range
+## 👨‍💻 Author
+
+**Ankit Singh**
+- GitHub: [@singhankit74](https://github.com/singhankit74)
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the project
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
 ## 📞 Support
 
-For issues or questions, please check:
-1. Database setup in `database/README.md`
-2. Browser console for error messages
-3. Supabase dashboard for data verification
+If you have any questions or need help, please open an issue on GitHub.
 
 ---
 
-Built with ❤️ for efficient school bus management
+Made with ❤️ for efficient school bus fleet management
