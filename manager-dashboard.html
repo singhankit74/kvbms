@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Manager Dashboard - School Bus Meter</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <h2>Vehicle Manager Dashboard</h2>
+                <p>Welcome, <span id="managerName">Manager</span> | Branch: <span id="branchName"
+                        class="badge badge-primary">Loading...</span></p>
+            </div>
+            <div class="dashboard-actions">
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">My Buses</div>
+                <div class="stat-value" id="totalBuses">0</div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-label">Today's Readings</div>
+                <div class="stat-value" id="todayReadings">0</div>
+            </div>
+            <div class="stat-card tertiary">
+                <div class="stat-label">Pending Returns</div>
+                <div class="stat-value" id="pendingReturns">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Fuel Entries (Today)</div>
+                <div class="stat-value" id="todayFuelEntries">0</div>
+            </div>
+        </div>
+
+        <!-- My Buses Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>My Buses</h3>
+                <button class="btn btn-primary" onclick="showAddBusModal()">
+                    + Add Bus
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bus Number</th>
+                            <th>Driver Name</th>
+                            <th>Route Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="busesTableBody">
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🚌</div>
+                                    <h4>No buses yet</h4>
+                                    <p>Add your first bus to get started</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Today's Meter Readings -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Today's Meter Readings</h3>
+                <button class="btn btn-success" onclick="exportReadingsToExcel()">
+                    📊 Export Readings
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bus Number</th>
+                            <th>Departure</th>
+                            <th>Return</th>
+                            <th>Distance</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="readingsTableBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">📊</div>
+                                    <h4>No readings today</h4>
+                                    <p>Record departure readings for your buses</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fuel Entries Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Fuel Entries</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="showAddFuelEntryModal()">
+                        ⛽ Add Fuel Entry
+                    </button>
+                    <button class="btn btn-success" onclick="exportFuelToExcel()">
+                        📊 Export Fuel Entries
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Bus Number</th>
+                            <th>Odometer</th>
+                            <th>Liters</th>
+                            <th>Amount (₹)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fuelEntriesTableBody">
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">⛽</div>
+                                    <h4>No fuel entries yet</h4>
+                                    <p>Add fuel entries for your buses</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Bus Modal -->
+    <div id="busModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="busModalTitle">Add Bus</h3>
+                <button class="close-modal" onclick="closeBusModal()">×</button>
+            </div>
+            <form id="busForm">
+                <input type="hidden" id="busId">
+                <div class="form-group">
+                    <label for="busNumber">Bus Number</label>
+                    <input type="text" id="busNumber" placeholder="e.g., BUS-001" required>
+                </div>
+                <div class="form-group">
+                    <label for="driverName">Driver Name</label>
+                    <input type="text" id="driverName" placeholder="Enter driver name" required>
+                </div>
+                <div class="form-group">
+                    <label for="routeName">Route Name</label>
+                    <input type="text" id="routeName" placeholder="Enter route name" required>
+                </div>
+                <div id="busError" class="error-message"></div>
+                <div id="busSuccess" class="success-message"></div>
+                <div class="dashboard-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeBusModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveBusBtn">
+                        <span>Save Bus</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Departure Modal -->
+    <div id="departureModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Record Departure</h3>
+                <button class="close-modal" onclick="closeDepartureModal()">×</button>
+            </div>
+            <form id="departureForm">
+                <input type="hidden" id="departureBusId">
+                <div class="form-group">
+                    <label>Bus Number</label>
+                    <input type="text" id="departureBusNumber" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="departureReading">Meter Reading (km)</label>
+                    <input type="number" id="departureReading" placeholder="Enter meter reading" required min="0">
+                </div>
+                <div class="form-group">
+                    <label for="departurePhoto">Meter Photo</label>
+                    <div class="image-upload-wrapper" id="departureUploadWrapper"
+                        onclick="document.getElementById('departurePhoto').click()">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Click to upload meter photo</div>
+                        <div class="image-preview" id="departurePreview"></div>
+                        <div class="image-info" id="departureInfo"></div>
+                    </div>
+                    <input type="file" id="departurePhoto" accept="image/*" style="display: none;" required>
+                </div>
+                <div id="departureError" class="error-message"></div>
+                <div id="departureSuccess" class="success-message"></div>
+                <div class="dashboard-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeDepartureModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success" id="saveDepartureBtn">
+                        <span>Record Departure</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Return Modal -->
+    <div id="returnModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Record Return</h3>
+                <button class="close-modal" onclick="closeReturnModal()">×</button>
+            </div>
+            <form id="returnForm">
+                <input type="hidden" id="returnReadingId">
+                <div class="form-group">
+                    <label>Bus Number</label>
+                    <input type="text" id="returnBusNumber" disabled>
+                </div>
+                <div class="form-group">
+                    <label>Departure Reading</label>
+                    <input type="text" id="returnDepartureReading" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="returnReading">Return Meter Reading (km)</label>
+                    <input type="number" id="returnReading" placeholder="Enter meter reading" required min="0">
+                </div>
+                <div class="form-group">
+                    <label for="returnPhoto">Meter Photo</label>
+                    <div class="image-upload-wrapper" id="returnUploadWrapper"
+                        onclick="document.getElementById('returnPhoto').click()">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Click to upload meter photo</div>
+                        <div class="image-preview" id="returnPreview"></div>
+                        <div class="image-info" id="returnInfo"></div>
+                    </div>
+                    <input type="file" id="returnPhoto" accept="image/*" style="display: none;" required>
+                </div>
+                <div id="returnError" class="error-message"></div>
+                <div id="returnSuccess" class="success-message"></div>
+                <div class="dashboard-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeReturnModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success" id="saveReturnBtn">
+                        <span>Record Return</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Fuel Entry Modal -->
+    <div id="fuelEntryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Fuel Entry</h3>
+                <button class="close-modal" onclick="closeFuelEntryModal()">×</button>
+            </div>
+            <form id="fuelEntryForm">
+                <div class="form-group">
+                    <label for="fuelBusSelect">Select Bus</label>
+                    <select id="fuelBusSelect" required>
+                        <option value="">Choose a bus</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="odometerReading">Odometer Reading (km)</label>
+                    <input type="number" id="odometerReading" placeholder="Enter odometer reading" required min="0">
+                </div>
+                <div class="form-group">
+                    <label for="fuelLiters">Fuel Filled (Liters)</label>
+                    <input type="number" id="fuelLiters" placeholder="Enter liters" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="fuelAmount">Amount (₹)</label>
+                    <input type="number" id="fuelAmount" placeholder="Enter amount" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="fuelPhoto">Meter Photo</label>
+                    <div class="image-upload-wrapper" id="fuelUploadWrapper"
+                        onclick="document.getElementById('fuelPhoto').click()">
+                        <div class="upload-icon">📷</div>
+                        <div class="upload-text">Click to upload meter photo</div>
+                        <div class="image-preview" id="fuelPreview"></div>
+                        <div class="image-info" id="fuelInfo"></div>
+                    </div>
+                    <input type="file" id="fuelPhoto" accept="image/*" style="display: none;" required>
+                </div>
+                <div id="fuelError" class="error-message"></div>
+                <div id="fuelSuccess" class="success-message"></div>
+                <div class="dashboard-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeFuelEntryModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success" id="saveFuelEntryBtn">
+                        <span>Save Fuel Entry</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+    <script src="utils.js"></script>
+    <script src="manager-dashboard.js"></script>
+</body>
+
+</html>

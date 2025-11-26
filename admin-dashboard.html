@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <title>Admin Dashboard - School Bus Meter</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-title">
+                <h2>Admin Dashboard</h2>
+                <p>Welcome, <span id="adminName">Admin</span></p>
+            </div>
+            <div class="dashboard-actions">
+                <select id="branchFilter" style="margin-right: 12px;">
+                    <option value="">All Branches</option>
+                </select>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Branches</div>
+                <div class="stat-value" id="totalBranches">7</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Buses</div>
+                <div class="stat-value" id="totalBuses">0</div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-label">Vehicle Managers</div>
+                <div class="stat-value" id="totalManagers">0</div>
+            </div>
+            <div class="stat-card tertiary">
+                <div class="stat-label">Today's Readings</div>
+                <div class="stat-value" id="todayReadings">0</div>
+            </div>
+        </div>
+
+        <!-- Vehicle Managers Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Vehicle Managers</h3>
+                <button class="btn btn-primary" onclick="showAddManagerModal()">
+                    + Add Manager
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Branch</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="managersTableBody">
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">👥</div>
+                                    <h4>No managers yet</h4>
+                                    <p>Add your first vehicle manager to get started</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- All Buses Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>All Buses</h3>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bus Number</th>
+                            <th>Driver Name</th>
+                            <th>Route Name</th>
+                            <th>Branch</th>
+                            <th>Created By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="busesTableBody">
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">🚌</div>
+                                    <h4>No buses yet</h4>
+                                    <p>Vehicle managers will add buses</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Meter Readings Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Meter Readings</h3>
+                <div class="dashboard-actions">
+                    <select id="dateRangeFilter" class="form-group" style="margin: 0;">
+                        <option value="today">Today</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                    </select>
+                    <button class="btn btn-success" onclick="exportToExcel()">
+                        📊 Export to Excel
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Branch</th>
+                            <th>Bus Number</th>
+                            <th>Departure</th>
+                            <th>Return</th>
+                            <th>Distance</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="readingsTableBody">
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">📊</div>
+                                    <h4>No readings yet</h4>
+                                    <p>Meter readings will appear here</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Fuel Entries Section -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Fuel Entries</h3>
+                <div class="dashboard-actions">
+                    <select id="fuelDateRangeFilter" class="form-group" style="margin: 0;">
+                        <option value="today">Today</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                    </select>
+                    <button class="btn btn-success" onclick="exportFuelToExcel()">
+                        ⛽ Export Fuel Report
+                    </button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Branch</th>
+                            <th>Bus Number</th>
+                            <th>Odometer</th>
+                            <th>Liters</th>
+                            <th>Amount (₹)</th>
+                            <th>Recorded By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fuelEntriesTableBody">
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">⛽</div>
+                                    <h4>No fuel entries yet</h4>
+                                    <p>Fuel entries will appear here</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Manager Modal -->
+    <div id="managerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="managerModalTitle">Add Vehicle Manager</h3>
+                <button class="close-modal" onclick="closeManagerModal()">×</button>
+            </div>
+            <form id="managerForm">
+                <input type="hidden" id="managerId">
+                <div class="form-group">
+                    <label for="managerName">Full Name</label>
+                    <input type="text" id="managerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="managerEmail">Email</label>
+                    <input type="email" id="managerEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="managerBranch">Assign Branch</label>
+                    <select id="managerBranch" required>
+                        <option value="">Select Branch</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="managerPassword">Password</label>
+                    <input type="password" id="managerPassword" required>
+                </div>
+                <div id="managerError" class="error-message"></div>
+                <div id="managerSuccess" class="success-message"></div>
+                <div class="dashboard-actions" style="margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeManagerModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveManagerBtn">
+                        <span>Save Manager</span>
+                        <div class="btn-loader"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Reading Details Modal -->
+    <div id="readingDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reading Details</h3>
+                <button class="close-modal" onclick="closeReadingDetailsModal()">×</button>
+            </div>
+            <div id="readingDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- View Fuel Entry Details Modal -->
+    <div id="fuelDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Fuel Entry Details</h3>
+                <button class="close-modal" onclick="closeFuelDetailsModal()">×</button>
+            </div>
+            <div id="fuelDetailsContent"></div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+    <script src="utils.js"></script>
+    <script src="admin-dashboard.js"></script>
+</body>
+
+</html>
