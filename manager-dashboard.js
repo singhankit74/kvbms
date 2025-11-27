@@ -12,63 +12,80 @@ let fuelPhotoBlob = null;
 let selectedReadingsDateRange = 'today';
 let selectedFuelDateRange = 'week';
 
+
 document.addEventListener('DOMContentLoaded', async () => {
-    currentUser = checkAuth('vehicle_manager');
-    if (!currentUser) return;
+    try {
+        currentUser = checkAuth('vehicle_manager');
+        if (!currentUser) return;
 
-    document.getElementById('managerName').textContent = currentUser.full_name;
+        document.getElementById('managerName').textContent = currentUser.full_name;
 
-    // Load branch first
-    await loadUserBranch();
+        // Show loading immediately
+        showLoading(true);
 
-    // Then load dashboard data if branch is assigned
-    if (userBranch && userBranch.branch_id) {
-        await loadDashboardData();
-    } else {
+        // Load branch and dashboard data together for faster loading
+        await loadUserBranch();
+
+        // Check if branch loaded successfully
+        if (userBranch && userBranch.branch_id) {
+            // Load dashboard data without waiting
+            loadDashboardData().catch(error => {
+                console.error('Error loading dashboard:', error);
+                showLoading(false);
+            });
+        } else {
+            showLoading(false);
+            console.warn('No branch assigned to user');
+        }
+
+        // Set up event listeners (don't wait for data to load)
+        document.getElementById('busForm').addEventListener('submit', handleSaveBus);
+        document.getElementById('departureForm').addEventListener('submit', handleSaveDeparture);
+        document.getElementById('returnForm').addEventListener('submit', handleSaveReturn);
+        document.getElementById('fuelEntryForm').addEventListener('submit', handleSaveFuelEntry);
+
+        // Photo upload handlers
+        document.getElementById('departurePhoto').addEventListener('change', handleDeparturePhotoSelect);
+        document.getElementById('returnPhoto').addEventListener('change', handleReturnPhotoSelect);
+        document.getElementById('fuelPhoto').addEventListener('change', handleFuelPhotoSelect);
+
+        // Date range filter listeners
+        document.getElementById('readingsDateRangeFilter').addEventListener('change', (e) => {
+            selectedReadingsDateRange = e.target.value;
+            loadMeterReadings();
+        });
+
+        document.getElementById('fuelDateRangeFilter').addEventListener('change', (e) => {
+            selectedFuelDateRange = e.target.value;
+            loadFuelEntries();
+        });
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
         showLoading(false);
     }
-
-    // Set up event listeners
-    document.getElementById('busForm').addEventListener('submit', handleSaveBus);
-    document.getElementById('departureForm').addEventListener('submit', handleSaveDeparture);
-    document.getElementById('returnForm').addEventListener('submit', handleSaveReturn);
-    document.getElementById('fuelEntryForm').addEventListener('submit', handleSaveFuelEntry);
-
-    // Photo upload handlers
-    document.getElementById('departurePhoto').addEventListener('change', handleDeparturePhotoSelect);
-    document.getElementById('returnPhoto').addEventListener('change', handleReturnPhotoSelect);
-    document.getElementById('fuelPhoto').addEventListener('change', handleFuelPhotoSelect);
-
-    // Date range filter listeners
-    document.getElementById('readingsDateRangeFilter').addEventListener('change', (e) => {
-        selectedReadingsDateRange = e.target.value;
-        loadMeterReadings();
-    });
-
-    document.getElementById('fuelDateRangeFilter').addEventListener('change', (e) => {
-        selectedFuelDateRange = e.target.value;
-        loadFuelEntries();
-    });
 });
 
 async function loadUserBranch() {
     try {
         console.log('Loading branch for user:', currentUser.id);
 
-        // First get the branch_id
+        // Load user with branch data in a single query for better performance
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('branch_id')
+            .select(`
+                branch_id,
+                branch:branches(branch_name)
+            `)
             .eq('id', currentUser.id)
             .single();
 
         if (userError) {
-            console.error('Error fetching user branch_id:', userError);
+            console.error('Error fetching user data:', userError);
             document.getElementById('branchName').textContent = 'Error';
             return;
         }
 
-        console.log('User data:', userData);
+        console.log('User data loaded:', userData);
 
         if (!userData.branch_id) {
             console.warn('User has no branch_id assigned');
@@ -77,28 +94,14 @@ async function loadUserBranch() {
             return;
         }
 
-        // Then get the branch name
-        const { data: branchData, error: branchError } = await supabase
-            .from('branches')
-            .select('branch_name')
-            .eq('id', userData.branch_id)
-            .single();
-
-        if (branchError) {
-            console.error('Error fetching branch name:', branchError);
-            document.getElementById('branchName').textContent = 'Error';
-            return;
-        }
-
-        console.log('Branch data:', branchData);
-
+        // Set userBranch with the loaded data
         userBranch = {
             branch_id: userData.branch_id,
-            branch: branchData
+            branch: userData.branch
         };
 
-        document.getElementById('branchName').textContent = branchData.branch_name;
-        console.log('Branch loaded successfully:', branchData.branch_name);
+        document.getElementById('branchName').textContent = userData.branch?.branch_name || 'Unknown';
+        console.log('Branch loaded successfully:', userData.branch?.branch_name);
 
     } catch (error) {
         console.error('Error loading user branch:', error);
