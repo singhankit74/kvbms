@@ -1,45 +1,46 @@
 // Service Worker for School Bus Meter Reading PWA
-const CACHE_NAME = 'school-bus-meter-v1';
-const urlsToCache = [
+// Updated to use Network First strategy for better data freshness
+const CACHE_NAME = 'school-bus-meter-v2'; // Increment version to force update
+const STATIC_CACHE = 'static-v2';
+const DYNAMIC_CACHE = 'dynamic-v2';
+
+// Static assets that rarely change
+const staticAssets = [
     '/',
     '/index.html',
     '/admin-dashboard.html',
     '/manager-dashboard.html',
     '/styles.css',
-    '/app.js',
-    '/auth.js',
-    '/utils.js',
-    '/admin-dashboard.js',
-    '/manager-dashboard.js',
     '/manifest.json',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png'
 ];
 
-// Install event - cache resources
+// Install event - cache static resources only
 self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installing...');
+    console.log('[Service Worker] Installing v2...');
     event.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(STATIC_CACHE)
             .then((cache) => {
-                console.log('[Service Worker] Caching app shell');
-                return cache.addAll(urlsToCache);
+                console.log('[Service Worker] Caching static assets');
+                return cache.addAll(staticAssets);
             })
             .catch((error) => {
                 console.error('[Service Worker] Cache failed:', error);
             })
     );
-    self.skipWaiting();
+    self.skipWaiting(); // Activate immediately
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activating...');
+    console.log('[Service Worker] Activating v2...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    // Delete old caches
+                    if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
                         console.log('[Service Worker] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
@@ -47,101 +48,106 @@ self.addEventListener('activate', (event) => {
             );
         })
     );
-    self.clients.claim();
+    self.clients.claim(); // Take control immediately
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network First for JS/HTML, Cache First for static assets
 self.addEventListener('fetch', (event) => {
-    // Skip cross-origin requests
-    if (!event.request.url.startsWith(self.location.origin) &&
-        !event.request.url.includes('supabase.co') &&
-        !event.request.url.includes('googleapis.com') &&
-        !event.request.url.includes('jsdelivr.net') &&
-        !event.request.url.includes('sheetjs.com')) {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Skip non-GET requests
+    if (request.method !== 'GET') {
         return;
     }
 
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Cache hit - return response
-                if (response) {
+    // Skip Supabase API calls - always fetch fresh
+    if (url.hostname.includes('supabase.co')) {
+        return;
+    }
+
+    // Skip external resources
+    if (!url.origin.includes(self.location.origin) &&
+        !url.hostname.includes('googleapis.com') &&
+        !url.hostname.includes('jsdelivr.net')) {
+        return;
+    }
+
+    // Network First strategy for HTML and JS files (always get fresh data)
+    if (request.url.endsWith('.html') ||
+        request.url.endsWith('.js') ||
+        request.url.includes('dashboard')) {
+
+        event.respondWith(
+            fetch(request)
+                .then((response) => {
+                    // Clone and cache the fresh response
+                    const responseClone = response.clone();
+                    caches.open(DYNAMIC_CACHE).then((cache) => {
+                        cache.put(request, responseClone);
+                    });
                     return response;
-                }
+                })
+                .catch(() => {
+                    // If network fails, try cache
+                    return caches.match(request);
+                })
+        );
+        return;
+    }
 
-                // Clone the request
-                const fetchRequest = event.request.clone();
+    // Cache First strategy for static assets (CSS, images, fonts)
+    if (request.url.endsWith('.css') ||
+        request.url.endsWith('.png') ||
+        request.url.endsWith('.jpg') ||
+        request.url.endsWith('.svg') ||
+        request.url.includes('/icons/')) {
 
-                return fetch(fetchRequest).then((response) => {
-                    // Check if valid response
-                    if (!response || response.status !== 200 || response.type === 'error') {
-                        return response;
+        event.respondWith(
+            caches.match(request)
+                .then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
                     }
-
-                    // Clone the response
-                    const responseToCache = response.clone();
-
-                    // Cache the fetched response for future use
-                    caches.open(CACHE_NAME)
-                        .then((cache) => {
-                            // Only cache GET requests
-                            if (event.request.method === 'GET') {
-                                cache.put(event.request, responseToCache);
-                            }
+                    return fetch(request).then((response) => {
+                        const responseClone = response.clone();
+                        caches.open(STATIC_CACHE).then((cache) => {
+                            cache.put(request, responseClone);
                         });
+                        return response;
+                    });
+                })
+        );
+        return;
+    }
 
-                    return response;
-                }).catch((error) => {
-                    console.error('[Service Worker] Fetch failed:', error);
-
-                    // Return offline page if available
-                    return caches.match('/index.html');
-                });
+    // Default: Network First for everything else
+    event.respondWith(
+        fetch(request)
+            .then((response) => {
+                return response;
+            })
+            .catch(() => {
+                return caches.match(request);
             })
     );
 });
 
-// Background sync for offline data submission (future enhancement)
-self.addEventListener('sync', (event) => {
-    console.log('[Service Worker] Background sync:', event.tag);
-
-    if (event.tag === 'sync-meter-readings') {
-        event.waitUntil(syncMeterReadings());
+// Message event - allow manual cache clearing
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
     }
-});
 
-async function syncMeterReadings() {
-    // This would sync any offline-created meter readings
-    // Implementation depends on your offline storage strategy
-    console.log('[Service Worker] Syncing meter readings...');
-}
-
-// Push notification support (future enhancement)
-self.addEventListener('push', (event) => {
-    console.log('[Service Worker] Push received');
-
-    const options = {
-        body: event.data ? event.data.text() : 'New notification',
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-192x192.png',
-        vibrate: [200, 100, 200],
-        data: {
-            dateOfArrival: Date.now(),
-            primaryKey: 1
-        }
-    };
-
-    event.waitUntil(
-        self.registration.showNotification('School Bus Meter', options)
-    );
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-    console.log('[Service Worker] Notification clicked');
-    event.notification.close();
-
-    event.waitUntil(
-        clients.openWindow('/')
-    );
+    if (event.data && event.data.type === 'CLEAR_CACHE') {
+        event.waitUntil(
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => caches.delete(cacheName))
+                );
+            }).then(() => {
+                console.log('[Service Worker] All caches cleared');
+            })
+        );
+    }
 });
