@@ -105,6 +105,23 @@ async function loadUserBranch() {
         document.getElementById('branchName').textContent = 'Error';
     }
 }
+
+async function loadDashboardData() {
+    showLoading(true);
+    try {
+        await Promise.all([
+            loadBuses(),
+            loadMeterReadings(),
+            loadFuelEntries()
+        ]);
+        updateStats();
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    } finally {
+        showLoading(false);
+    }
+}
+
 async function loadBuses() {
     try {
         if (!userBranch || !userBranch.branch_id) {
