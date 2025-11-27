@@ -8,6 +8,10 @@ let departurePhotoBlob = null;
 let returnPhotoBlob = null;
 let fuelPhotoBlob = null;
 
+// Date range filters
+let selectedReadingsDateRange = 'today';
+let selectedFuelDateRange = 'week';
+
 document.addEventListener('DOMContentLoaded', async () => {
     currentUser = checkAuth('vehicle_manager');
     if (!currentUser) return;
@@ -34,6 +38,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('departurePhoto').addEventListener('change', handleDeparturePhotoSelect);
     document.getElementById('returnPhoto').addEventListener('change', handleReturnPhotoSelect);
     document.getElementById('fuelPhoto').addEventListener('change', handleFuelPhotoSelect);
+
+    // Date range filter listeners
+    document.getElementById('readingsDateRangeFilter').addEventListener('change', (e) => {
+        selectedReadingsDateRange = e.target.value;
+        loadMeterReadings();
+    });
+
+    document.getElementById('fuelDateRangeFilter').addEventListener('change', (e) => {
+        selectedFuelDateRange = e.target.value;
+        loadFuelEntries();
+    });
 });
 
 async function loadUserBranch() {
@@ -90,23 +105,6 @@ async function loadUserBranch() {
         document.getElementById('branchName').textContent = 'Error';
     }
 }
-
-async function loadDashboardData() {
-    showLoading(true);
-    try {
-        await Promise.all([
-            loadBuses(),
-            loadTodayReadings(),
-            loadFuelEntries()
-        ]);
-        updateStats();
-    } catch (error) {
-        console.error('Error loading dashboard data:', error);
-    } finally {
-        showLoading(false);
-    }
-}
-
 async function loadBuses() {
     try {
         if (!userBranch || !userBranch.branch_id) {
@@ -177,14 +175,34 @@ function populateBusSelects() {
         buses.map(b => `<option value="${b.id}">${b.bus_number} - ${b.driver_name}</option>`).join('');
 }
 
-async function loadTodayReadings() {
+async function loadMeterReadings() {
     try {
         if (!userBranch || !userBranch.branch_id) {
             console.log('Branch not loaded, skipping readings');
             return;
         }
 
-        const today = DateUtils.getTodayDate();
+        // Calculate date range based on filter
+        const today = new Date();
+        let startDate;
+
+        switch (selectedReadingsDateRange) {
+            case 'today':
+                startDate = DateUtils.getTodayDate();
+                break;
+            case 'week':
+                const weekAgo = new Date(today);
+                weekAgo.setDate(today.getDate() - 7);
+                startDate = weekAgo.toISOString().split('T')[0];
+                break;
+            case 'month':
+                const monthAgo = new Date(today);
+                monthAgo.setDate(today.getDate() - 30);
+                startDate = monthAgo.toISOString().split('T')[0];
+                break;
+            default:
+                startDate = DateUtils.getTodayDate();
+        }
 
         const { data, error } = await supabase
             .from('meter_readings')
@@ -192,17 +210,18 @@ async function loadTodayReadings() {
                 *,
                 bus:buses(bus_number, driver_name, route_name)
             `)
-            .eq('date', today)
+            .gte('date', startDate)
             .eq('branch_id', userBranch.branch_id)
+            .order('date', { ascending: false })
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         todayReadings = data || [];
-        console.log('Today readings loaded:', todayReadings.length);
+        console.log(`Meter readings loaded (${selectedReadingsDateRange}):`, todayReadings.length);
         renderTodayReadings();
     } catch (error) {
-        console.error('Error loading today readings:', error);
+        console.error('Error loading meter readings:', error);
     }
 }
 
@@ -260,21 +279,43 @@ async function loadFuelEntries() {
             return;
         }
 
+        // Calculate date range based on filter
+        const today = new Date();
+        let startDate;
+
+        switch (selectedFuelDateRange) {
+            case 'today':
+                startDate = DateUtils.getTodayDate();
+                break;
+            case 'week':
+                const weekAgo = new Date(today);
+                weekAgo.setDate(today.getDate() - 7);
+                startDate = weekAgo.toISOString().split('T')[0];
+                break;
+            case 'month':
+                const monthAgo = new Date(today);
+                monthAgo.setDate(today.getDate() - 30);
+                startDate = monthAgo.toISOString().split('T')[0];
+                break;
+            default:
+                startDate = DateUtils.getTodayDate();
+        }
+
         const { data, error } = await supabase
             .from('fuel_entries')
             .select(`
                 *,
                 bus:buses(bus_number, driver_name, route_name)
             `)
+            .gte('date', startDate)
             .eq('branch_id', userBranch.branch_id)
             .order('date', { ascending: false })
-            .order('created_at', { ascending: false })
-            .limit(20);
+            .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         fuelEntries = data || [];
-        console.log('Fuel entries loaded:', fuelEntries.length);
+        console.log(`Fuel entries loaded (${selectedFuelDateRange}):`, fuelEntries.length);
         renderFuelEntries();
     } catch (error) {
         console.error('Error loading fuel entries:', error);
@@ -422,7 +463,7 @@ async function deleteBus(busId) {
         if (error) throw error;
 
         await loadBuses();
-        await loadTodayReadings();
+        await loadMeterReadings();
         updateStats();
         alert('Bus deleted successfully');
     } catch (error) {
@@ -528,7 +569,7 @@ async function handleSaveDeparture(e) {
 
         Utils.showSuccess('departureSuccess', 'Departure recorded successfully!');
 
-        await loadTodayReadings();
+        await loadMeterReadings();
         updateStats();
 
         setTimeout(() => {
@@ -639,7 +680,7 @@ async function handleSaveReturn(e) {
 
         Utils.showSuccess('returnSuccess', 'Return recorded successfully!');
 
-        await loadTodayReadings();
+        await loadMeterReadings();
         updateStats();
 
         setTimeout(() => {
@@ -823,7 +864,7 @@ async function exportReadingsToExcel() {
         }));
 
         const branchName = userBranch.branch?.branch_name || 'my_branch';
-        const filename = `meter_readings_${branchName}_${DateUtils.getTodayDate()}_${Date.now()}.xlsx`;
+        const filename = `meter_readings_${branchName}_${selectedReadingsDateRange}_${Date.now()}.xlsx`;
 
         await ExcelExporter.exportToExcel(exportData, filename);
 
@@ -858,7 +899,7 @@ async function exportFuelToExcel() {
         }));
 
         const branchName = userBranch.branch?.branch_name || 'my_branch';
-        const filename = `fuel_entries_${branchName}_${DateUtils.getTodayDate()}_${Date.now()}.xlsx`;
+        const filename = `fuel_entries_${branchName}_${selectedFuelDateRange}_${Date.now()}.xlsx`;
 
         await ExcelExporter.exportToExcel(exportData, filename);
 

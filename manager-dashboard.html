@@ -79,13 +79,20 @@
             </div>
         </div>
 
-        <!-- Today's Meter Readings -->
+        <!-- Meter Readings Section -->
         <div class="card">
             <div class="card-header">
-                <h3>Today's Meter Readings</h3>
-                <button class="btn btn-success" onclick="exportReadingsToExcel()">
-                    📊 Export Readings
-                </button>
+                <h3>Meter Readings</h3>
+                <div class="dashboard-actions">
+                    <select id="readingsDateRangeFilter" class="form-group" style="margin: 0;">
+                        <option value="today">Today</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                    </select>
+                    <button class="btn btn-success" onclick="exportReadingsToExcel()">
+                        📊 Export Readings
+                    </button>
+                </div>
             </div>
             <div class="table-wrapper">
                 <table>
@@ -104,7 +111,7 @@
                             <td colspan="6">
                                 <div class="empty-state">
                                     <div class="empty-state-icon">📊</div>
-                                    <h4>No readings today</h4>
+                                    <h4>No readings</h4>
                                     <p>Record departure readings for your buses</p>
                                 </div>
                             </td>
@@ -118,7 +125,12 @@
         <div class="card">
             <div class="card-header">
                 <h3>Fuel Entries</h3>
-                <div class="action-buttons">
+                <div class="dashboard-actions">
+                    <select id="fuelDateRangeFilter" class="form-group" style="margin: 0;">
+                        <option value="today">Today</option>
+                        <option value="week" selected>Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                    </select>
                     <button class="btn btn-success" onclick="showAddFuelEntryModal()">
                         ⛽ Add Fuel Entry
                     </button>
