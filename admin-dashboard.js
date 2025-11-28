@@ -259,9 +259,14 @@ function renderReadings() {
                 <td>${reading.distance_traveled ? reading.distance_traveled + ' km' : '-'}</td>
                 <td>${statusBadge}</td>
                 <td>
-                    <button class="btn btn-sm btn-secondary" onclick="viewReadingDetails('${reading.id}')">
-                        View
-                    </button>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-secondary" onclick="viewReadingDetails('${reading.id}')">
+                            👁️ View
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteReading('${reading.id}', '${reading.bus?.bus_number || 'N/A'}', '${Utils.formatDate(reading.date)}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -328,9 +333,14 @@ function renderFuelEntries() {
             <td>₹${entry.fuel_amount}</td>
             <td>${entry.recorded_by_user?.full_name || 'Unknown'}</td>
             <td>
-                <button class="btn btn-sm btn-secondary" onclick="viewFuelDetails('${entry.id}')">
-                    View
-                </button>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-secondary" onclick="viewFuelDetails('${entry.id}')">
+                        👁️ View
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteFuelEntry('${entry.id}', '${entry.bus?.bus_number || 'N/A'}', '${Utils.formatDate(entry.date)}')">
+                        🗑️ Delete
+                    </button>
+                </div>
             </td>
         </tr>
     `).join('');
@@ -669,6 +679,70 @@ async function exportFuelToExcel() {
     } catch (error) {
         console.error('Export error:', error);
         alert('Failed to export fuel data: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Delete Meter Reading
+async function deleteReading(readingId, busNumber, date) {
+    // Confirmation dialog
+    const confirmMessage = `Are you sure you want to delete this meter reading?\n\nBus: ${busNumber}\nDate: ${date}\n\nThis action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    showLoading(true);
+
+    try {
+        // Delete the meter reading from database
+        const { error } = await supabase
+            .from('meter_readings')
+            .delete()
+            .eq('id', readingId);
+
+        if (error) throw error;
+
+        // Reload the readings to refresh the table
+        await loadReadings();
+
+        alert('Meter reading deleted successfully!');
+    } catch (error) {
+        console.error('Error deleting meter reading:', error);
+        alert('Failed to delete meter reading: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Delete Fuel Entry
+async function deleteFuelEntry(fuelId, busNumber, date) {
+    // Confirmation dialog
+    const confirmMessage = `Are you sure you want to delete this fuel entry?\n\nBus: ${busNumber}\nDate: ${date}\n\nThis action cannot be undone.`;
+
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    showLoading(true);
+
+    try {
+        // Delete the fuel entry from database
+        const { error } = await supabase
+            .from('fuel_entries')
+            .delete()
+            .eq('id', fuelId);
+
+        if (error) throw error;
+
+        // Reload the fuel entries to refresh the table
+        await loadFuelEntries();
+
+        alert('Fuel entry deleted successfully!');
+    } catch (error) {
+        console.error('Error deleting fuel entry:', error);
+        alert('Failed to delete fuel entry: ' + error.message);
     } finally {
         showLoading(false);
     }
